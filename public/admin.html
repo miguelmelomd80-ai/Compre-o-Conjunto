@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compre o Conjunto — Painel</title>
+<style>
+  :root { --bg:#f6f6f4; --card:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e4e4df; --accent:#1d1d1b; --danger:#b42318; --ok:#067647; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 24px; background:var(--card); border-bottom:1px solid var(--line); }
+  header h1 { font-size:18px; margin:0; }
+  header small { color:var(--muted); }
+  main { max-width:980px; margin:0 auto; padding:24px 16px 64px; }
+  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--line); }
+  .tab { padding:10px 14px; border:0; background:none; font:inherit; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.on { color:var(--ink); border-color:var(--ink); font-weight:600; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font:inherit; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.danger { color:var(--danger); }
+  .btn.sm { padding:5px 9px; font-size:13px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:12px; }
+  .set-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .set-head h3 { margin:0 0 2px; font-size:16px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:99px; background:#ecfdf3; color:var(--ok); margin-left:6px; vertical-align:middle; }
+  .badge.off { background:#f2f2ef; color:var(--muted); }
+  .thumbs { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .thumb { width:64px; text-align:center; font-size:11px; color:var(--muted); }
+  .thumb img, .thumb .ph { width:64px; height:64px; object-fit:cover; border-radius:8px; background:#eee; display:block; margin-bottom:4px; }
+  .thumb.missing { color:var(--danger); }
+  .empty { text-align:center; padding:48px 16px; color:var(--muted); }
+  label { display:block; font-weight:600; font-size:13px; margin:14px 0 6px; }
+  input[type=text], input[type=search], select { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
+  input[type=color] { width:48px; height:36px; border:1px solid var(--line); border-radius:8px; padding:2px; background:#fff; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+  @media (max-width:640px){ .grid2 { grid-template-columns:1fr; } header { padding:12px 16px; } }
+  dialog { border:0; border-radius:14px; padding:0; width:min(720px, calc(100vw - 32px)); max-height:calc(100vh - 32px); }
+  dialog::backdrop { background:rgba(0,0,0,.35); }
+  .dlg-body { padding:20px; overflow:auto; max-height:calc(100vh - 120px); }
+  .dlg-foot { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px; border-top:1px solid var(--line); }
+  .list { border:1px solid var(--line); border-radius:8px; max-height:260px; overflow:auto; }
+  .item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--line); }
+  .item:last-child { border-bottom:0; }
+  .item img, .item .ph { width:40px; height:40px; border-radius:6px; object-fit:cover; background:#eee; flex:none; }
+  .item .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .err { color:var(--danger); font-size:13px; margin-top:10px; min-height:1em; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.2s; pointer-events:none; }
+  .toast.on { opacity:1; }
+  .preview-btn { display:inline-block; padding:12px 20px; border-radius:8px; font-weight:600; margin-top:8px; }
+  .check { display:flex; align-items:center; gap:8px; font-weight:400; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Compre o Conjunto</h1><small id="storeLabel"></small></div>
+  <a class="btn sm" href="/logout">Sair</a>
+</header>
+<main>
+  <div class="tabs">
+    <button class="tab on" data-tab="sets">Conjuntos</button>
+    <button class="tab" data-tab="settings">Aparência</button>
+  </div>
+
+  <section id="tab-sets">
+    <div class="row">
+      <p class="muted" style="margin:0">O bloco aparece na página de cada produto que faz parte de um conjunto ativo.</p>
+      <button class="btn primary" id="newSet">+ Novo conjunto</button>
+    </div>
+    <div id="sets"></div>
+  </section>
+
+  <section id="tab-settings" hidden>
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <label for="sButton">Texto do botão</label>
+          <input type="text" id="sButton" maxlength="60">
+        </div>
+        <div>
+          <label for="sAfter">Depois de adicionar</label>
+          <select id="sAfter">
+            <option value="cart">Ir para o carrinho</option>
+            <option value="reload">Continuar na página</option>
+          </select>
+        </div>
+        <div>
+          <label>Cor do botão</label>
+          <input type="color" id="sColor">
+        </div>
+        <div>
+          <label>Cor do texto do botão</label>
+          <input type="color" id="sText">
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="sMobile"> Mostrar também no celular</label>
+      <label>Prévia</label>
+      <span class="preview-btn" id="preview"></span>
+      <div class="row" style="margin:20px 0 0">
+        <button class="btn sm" id="refreshCache" title="Use depois de mudar preço, estoque ou fotos">Atualizar dados dos produtos</button>
+        <button class="btn primary" id="saveSettings">Salvar</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog" id="setForm">
+    <div class="dlg-body">
+      <h2 style="margin:0 0 4px;font-size:18px" id="dlgTitle">Novo conjunto</h2>
+      <p class="muted" style="margin:0">Escolha de 2 a 8 peças. A ordem aqui é a ordem na loja.</p>
+      <div class="grid2">
+        <div><label for="fName">Nome interno</label><input type="text" id="fName" placeholder="Ex.: Conjunto alfaiataria bege" required></div>
+        <div><label for="fTitle">Título na loja</label><input type="text" id="fTitle" placeholder="Compre o conjunto"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="fActive" checked> Ativo</label>
+
+      <label>Peças do conjunto</label>
+      <div class="list" id="chosen"></div>
+
+      <label for="fSearch">Buscar produto</label>
+      <input type="search" id="fSearch" placeholder="Nome, SKU ou tag…">
+      <div class="list" id="results" style="margin-top:8px"></div>
+      <div class="err" id="fErr"></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+      <button class="btn primary" id="saveSet" value="save">Salvar conjunto</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const img = (src, cls='') => src ? `<img src="${esc(src)}" alt="" loading="lazy" class="${cls}">` : `<span class="ph ${cls}"></span>`;
+
+async function api(method, url, body) {
+  const r = await fetch('/api/admin' + url, { method, credentials:'include',
+    headers: body ? {'Content-Type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) { location.href = '/'; throw new Error('sessão'); }
+  if (r.status === 204) return null;
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Erro inesperado');
+  return data;
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2200); }
+
+// ---- Abas
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+  $('#tab-sets').hidden = b.dataset.tab !== 'sets';
+  $('#tab-settings').hidden = b.dataset.tab !== 'settings';
+});
+
+// ---- Conjuntos
+let sets = [];
+async function loadSets() {
+  $('#sets').innerHTML = '<p class="muted">Carregando…</p>';
+  sets = await api('GET', '/sets');
+  if (!sets.length) {
+    $('#sets').innerHTML = '<div class="card empty">Nenhum conjunto ainda.<br>Crie o primeiro para mostrar o botão “Compre o conjunto” na loja.</div>';
+    return;
+  }
+  $('#sets').innerHTML = sets.map(s => `
+    <div class="card">
+      <div class="set-head">
+        <div>
+          <h3>${esc(s.name)} <span class="badge ${s.active ? '' : 'off'}">${s.active ? 'Ativo' : 'Pausado'}</span></h3>
+          <div class="muted">Título na loja: “${esc(s.title)}” · ${s.products.length} peças</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm" data-toggle="${s.id}">${s.active ? 'Pausar' : 'Ativar'}</button>
+          <button class="btn sm" data-edit="${s.id}">Editar</button>
+          <button class="btn sm danger" data-del="${s.id}">Excluir</button>
+        </div>
+      </div>
+      <div class="thumbs">${s.products.map(p => `
+        <div class="thumb ${p.missing ? 'missing' : ''}" title="${esc(p.name)}">${img(p.image)}${esc(p.name).slice(0, 22)}${p.published === false ? '<br>(oculto)' : ''}</div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+$('#sets').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const find = id => sets.find(s => s.id == id);
+  if (b.dataset.edit) openDialog(find(b.dataset.edit));
+  if (b.dataset.del && confirm('Excluir este conjunto?')) { await api('DELETE', '/sets/' + b.dataset.del); toast('Conjunto excluído'); loadSets(); }
+  if (b.dataset.toggle) {
+    const s = find(b.dataset.toggle);
+    await api('PUT', '/sets/' + s.id, { name:s.name, title:s.title, product_ids:s.product_ids, active:!s.active });
+    toast(s.active ? 'Conjunto pausado' : 'Conjunto ativado'); loadSets();
+  }
+};
+
+// ---- Diálogo de edição
+let editing = null, chosen = [], lastResults = [];
+function openDialog(set) {
+  editing = set || null;
+  $('#dlgTitle').textContent = set ? 'Editar conjunto' : 'Novo conjunto';
+  $('#fName').value = set ? set.name : '';
+  $('#fTitle').value = set ? set.title : 'Compre o conjunto';
+  $('#fActive').checked = set ? set.active : true;
+  chosen = set ? set.products.map(p => ({ id:p.id, name:p.name, image:p.image })) : [];
+  $('#fSearch').value = ''; $('#fErr').textContent = '';
+  renderChosen(); search('');
+  $('#dlg').showModal();
+}
+$('#newSet').onclick = () => openDialog(null);
+
+function renderChosen() {
+  $('#chosen').innerHTML = chosen.length ? chosen.map((p, i) => `
+    <div class="item">${img(p.image)}<span class="nm">${i + 1}. ${esc(p.name)}</span>
+      <button type="button" class="btn sm" data-up="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Subir">↑</button>
+      <button type="button" class="btn sm" data-down="${i}" ${i === chosen.length - 1 ? 'disabled' : ''} aria-label="Descer">↓</button>
+      <button type="button" class="btn sm danger" data-rm="${i}">Remover</button>
+    </div>`).join('') : '<div class="item muted">Nenhuma peça escolhida.</div>';
+  renderResults();
+}
+$('#chosen').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.rm != null) chosen.splice(+d.rm, 1);
+  if (d.up != null) { const i = +d.up; [chosen[i - 1], chosen[i]] = [chosen[i], chosen[i - 1]]; }
+  if (d.down != null) { const i = +d.down; [chosen[i + 1], chosen[i]] = [chosen[i], chosen[i + 1]]; }
+  renderChosen();
+};
+
+let timer;
+$('#fSearch').oninput = e => { clearTimeout(timer); timer = setTimeout(() => search(e.target.value), 300); };
+async function search(q) {
+  $('#results').innerHTML = '<div class="item muted">Buscando…</div>';
+  try { lastResults = await api('GET', '/products?q=' + encodeURIComponent(q)); renderResults(); }
+  catch (err) { $('#results').innerHTML = `<div class="item err">${esc(err.message)}</div>`; }
+}
+function renderResults() {
+  if (!lastResults.length) { $('#results').innerHTML = '<div class="item muted">Nenhum produto encontrado.</div>'; return; }
+  $('#results').innerHTML = lastResults.map(p => {
+    const added = chosen.some(c => c.id == p.id);
+    return `<div class="item">${img(p.image)}<span class="nm">${esc(p.name)}${p.published ? '' : ' <span class="muted">(oculto)</span>'}</span>
+      <button type="button" class="btn sm" data-add="${p.id}" ${added || chosen.length >= 8 ? 'disabled' : ''}>${added ? 'Adicionado' : 'Adicionar'}</button></div>`;
+  }).join('');
+}
+$('#results').onclick = e => {
+  const b = e.target.closest('button[data-add]'); if (!b) return;
+  const p = lastResults.find(x => x.id == b.dataset.add);
+  chosen.push({ id:p.id, name:p.name, image:p.image }); renderChosen();
+};
+
+$('#setForm').onsubmit = async e => {
+  if (e.submitter && e.submitter.value === 'cancel') return;
+  e.preventDefault();
+  const body = { name:$('#fName').value, title:$('#fTitle').value, active:$('#fActive').checked, product_ids:chosen.map(p => p.id) };
+  $('#saveSet').disabled = true;
+  try {
+    if (editing) await api('PUT', '/sets/' + editing.id, body); else await api('POST', '/sets', body);
+    $('#dlg').close(); toast('Conjunto salvo'); loadSets();
+  } catch (err) { $('#fErr').textContent = err.message; }
+  finally { $('#saveSet').disabled = false; }
+};
+
+// ---- Aparência
+function updatePreview() {
+  const p = $('#preview');
+  p.textContent = $('#sButton').value || 'Comprar o conjunto';
+  p.style.background = $('#sColor').value; p.style.color = $('#sText').value;
+}
+['#sButton', '#sColor', '#sText'].forEach(s => $(s).oninput = updatePreview);
+$('#saveSettings').onclick = async () => {
+  await api('PUT', '/settings', { button_text:$('#sButton').value, primary_color:$('#sColor').value,
+    text_color:$('#sText').value, after_add:$('#sAfter').value, show_on_mobile:$('#sMobile').checked });
+  toast('Aparência salva');
+};
+$('#refreshCache').onclick = async () => { await api('POST', '/refresh-cache'); toast('Dados dos produtos atualizados'); loadSets(); };
+
+(async () => {
+  const me = await api('GET', '/me');
+  $('#storeLabel').textContent = 'Loja #' + me.store_id;
+  const s = me.settings;
+  $('#sButton').value = s.button_text; $('#sColor').value = s.primary_color; $('#sText').value = s.text_color;
+  $('#sAfter').value = s.after_add; $('#sMobile').checked = s.show_on_mobile; updatePreview();
+  loadSets();
+})();
+</script>
+</body>
+</html>
