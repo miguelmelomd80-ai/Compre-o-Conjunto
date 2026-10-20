@@ -78,6 +78,7 @@ function normalizeProduct(p) {
     image: (p.images && p.images[0] && p.images[0].src) || null,
     images: (p.images || []).map(i => ({ id: i.id, src: i.src })),
     published: p.published !== false,
+    categories: (p.categories || []).map(c => c.id),
     attributes,
     variants,
   };
@@ -104,8 +105,74 @@ async function searchProducts(store, q) {
   return (list || []).map(normalizeProduct);
 }
 
+// Todos os produtos da loja (até 2.000), para as sugestões automáticas de conjuntos
+async function listAllProducts(store) {
+  const all = [];
+  for (let page = 1; page <= 10; page++) {
+    const list = await api(store, 'GET', `/products?per_page=200&page=${page}`);
+    if (!list || !list.length) break;
+    all.push(...list.map(normalizeProduct));
+    for (const p of all.slice(-list.length)) cache.set(`${store.store_id}:${p.id}`, { value: p, exp: Date.now() + TTL });
+    if (list.length < 200) break;
+  }
+  return all;
+}
+
+// Categorias da loja (para montar conjuntos por categoria)
+async function listCategories(store) {
+  const all = [];
+  for (let page = 1; page <= 5; page++) {
+    const list = await api(store, 'GET', `/categories?per_page=200&page=${page}`);
+    if (!list || !list.length) break;
+    all.push(...list.map(c => ({ id: c.id, name: t(c.name), parent: c.parent || null })));
+    if (list.length < 200) break;
+  }
+  // nome completo: "Bermudas > Treta"
+  const byId = Object.fromEntries(all.map(c => [c.id, c]));
+  const full = c => (c.parent && byId[c.parent] ? full(byId[c.parent]) + ' › ' : '') + c.name;
+  return all.map(c => ({ id: c.id, name: full(c), parent: c.parent })).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+}
+
+// Nome e domínio da loja (para a lista da agência)
+async function getStoreInfo(store) {
+  const s = await api(store, 'GET', '/store');
+  if (!s) return null;
+  return { name: t(s.name) || s.business_name || null, domain: s.url_with_protocol || (s.original_domain ? `https://${s.original_domain}` : null) };
+}
+
+// ---------- Cupons (desconto do conjunto) ----------
+function couponCode(setId) {
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `LOOK${setId}${rand}`.replace(/[^A-Z0-9]/g, '');
+}
+async function upsertCoupon(store, set) {
+  const body = {
+    type: 'percentage',
+    value: String(set.discount_percent),
+    valid: true,
+    products: set.product_ids,
+    combines_with_other_discounts: !!set.combine_discounts,
+  };
+  if (set.coupon_id) {
+    try {
+      await api(store, 'PUT', `/coupons/${set.coupon_id}`, { code: set.coupon_code, ...body });
+      return { id: set.coupon_id, code: set.coupon_code };
+    } catch (e) { if (e.status !== 404 && e.status !== 422) throw e; }
+  }
+  const code = couponCode(set.id);
+  const c = await api(store, 'POST', '/coupons', { code, ...body });
+  return { id: c.id, code: c.code || code };
+}
+async function deleteCoupon(store, couponId) {
+  if (!couponId) return;
+  try { await api(store, 'DELETE', `/coupons/${couponId}`); } catch (e) { console.warn('Cupom não removido:', e.message); }
+}
+
 function clearCache(storeId) {
   for (const k of cache.keys()) if (k.startsWith(`${storeId}:`)) cache.delete(k);
 }
 
-module.exports = { exchangeCode, api, getProduct, searchProducts, normalizeProduct, clearCache, AUTH_BASE };
+module.exports = {
+  exchangeCode, api, getProduct, searchProducts, listAllProducts, listCategories, getStoreInfo, upsertCoupon, deleteCoupon,
+  normalizeProduct, clearCache, AUTH_BASE,
+};

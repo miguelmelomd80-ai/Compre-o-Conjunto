@@ -2,14 +2,14 @@
 const express = require('express');
 
 const products = [
-  { id: 101, name: { pt: 'Blazer Alfaiataria Bege' }, published: true, canonical_url: '/produtos/blazer/',
+  { id: 101, name: { pt: 'Blazer Alfaiataria Bege' }, published: true, categories: [{ id: 10 }], canonical_url: '/produtos/blazer/',
     attributes: [{ pt: 'Tamanho' }], images: [{ id: 1, src: 'https://placehold.co/200x200?text=Blazer' }],
     variants: [
       { id: 1011, values: [{ pt: 'P' }], price: '389.90', promotional_price: '329.90', stock_management: true, stock: 3 },
       { id: 1012, values: [{ pt: 'M' }], price: '389.90', promotional_price: '329.90', stock_management: true, stock: 0 },
       { id: 1013, values: [{ pt: 'G' }], price: '389.90', promotional_price: '329.90', stock_management: true, stock: 5 },
     ] },
-  { id: 102, name: { pt: 'Calça Pantalona Bege' }, published: true, canonical_url: '/produtos/calca/',
+  { id: 102, name: { pt: 'Calça Pantalona Bege' }, published: true, categories: [{ id: 20 }], canonical_url: '/produtos/calca/',
     attributes: [{ pt: 'Cor' }, { pt: 'Tamanho' }], images: [{ id: 2, src: 'https://placehold.co/200x200?text=Calca' }],
     variants: [
       { id: 1021, values: [{ pt: 'Bege' }, { pt: '38' }], price: '259.90', promotional_price: null, stock_management: true, stock: 2 },
@@ -17,6 +17,10 @@ const products = [
     ] },
   { id: 103, name: { pt: 'Cinto Couro' }, published: true, canonical_url: '/produtos/cinto/',
     attributes: [], images: [], variants: [{ id: 1031, values: [], price: '99.00', stock_management: false, stock: null }] },
+  { id: 105, name: { pt: 'Camiseta Premium Bozo' }, published: true, categories: [{ id: 10 }], canonical_url: '/produtos/camiseta-bozo/',
+    attributes: [{ pt: 'Tamanho' }], images: [], variants: [{ id: 1051, values: [{ pt: 'M' }], price: '189.90', stock_management: false }, { id: 1052, values: [{ pt: 'G' }], price: '189.90', stock_management: false }] },
+  { id: 106, name: { pt: 'Bermuda Premium Bozo (TRETA)' }, published: true, categories: [{ id: 20 }, { id: 21 }], canonical_url: '/produtos/bermuda-bozo/',
+    attributes: [{ pt: 'Tamanho' }], images: [], variants: [{ id: 1061, values: [{ pt: '40' }], price: '119.90', stock_management: false }, { id: 1062, values: [{ pt: 'G' }], price: '119.90', stock_management: false }] },
   { id: 104, name: { pt: 'Produto Oculto' }, published: false, canonical_url: '/produtos/oculto/', attributes: [], images: [],
     variants: [{ id: 1041, values: [], price: '10', stock_management: false }] },
 ];
@@ -24,15 +28,19 @@ const products = [
 function start(port, { appUrl } = {}) {
   const app = express();
   const cart = [];
+  const applied = [];
 
   // ---- API REST
   app.use(/^\/(v1|\d{4}-\d{2})\/\d+/, (req, res, next) => {
     if (!/Bearer tok-123/.test(req.get('authorization') || '')) return res.status(401).json({ error: 'unauthorized' });
     next();
   });
+  const coupons = [];
   app.get('/:ver/:store/products', (req, res) => {
     const q = String(req.query.q || '').toLowerCase();
-    const list = products.filter(p => !q || p.name.pt.toLowerCase().includes(q));
+    const page = Number(req.query.page || 1);
+    let list = products.filter(p => !q || p.name.pt.toLowerCase().includes(q));
+    if (page > 1) list = [];
     if (!list.length) return res.status(404).json({ code: 404, message: 'Not Found', description: 'Last page is 0' });
     res.json(list);
   });
@@ -41,10 +49,29 @@ function start(port, { appUrl } = {}) {
     p ? res.json(p) : res.status(404).json({});
   });
 
+  app.get('/:ver/:store/categories', (req, res) => res.json(Number(req.query.page || 1) > 1 ? [] : [
+    { id: 10, name: { pt: 'Camisetas' }, parent: null }, { id: 20, name: { pt: 'Bermudas' }, parent: null }, { id: 21, name: { pt: 'Treta' }, parent: 20 }]));
+  app.get('/:ver/:store/store', (req, res) => res.json({ id: 123, name: { pt: 'Loja Teste' }, url_with_protocol: 'https://loja-teste.com.br' }));
+  app.post('/:ver/:store/coupons', express.json(), (req, res) => {
+    if (process.env.MOCK_NO_COUPONS) return res.status(403).json({ error: 'forbidden' });
+    const c = { id: 900 + coupons.length, ...req.body }; coupons.push(c); res.status(201).json(c);
+  });
+  app.put('/:ver/:store/coupons/:id', express.json(), (req, res) => {
+    const c = coupons.find(x => String(x.id) === req.params.id);
+    if (!c) return res.status(404).json({}); Object.assign(c, req.body); res.json(c);
+  });
+  app.delete('/:ver/:store/coupons/:id', (req, res) => {
+    const i = coupons.findIndex(x => String(x.id) === req.params.id);
+    if (i >= 0) coupons.splice(i, 1); res.json({});
+  });
+  app.get('/__coupons', (req, res) => res.json(coupons));
+  app.get('/discount/:code', (req, res) => { applied.push(req.params.code); res.redirect(303, req.query.redirect_to || '/'); });
+  app.get('/__applied', (req, res) => res.json(applied));
+
   // ---- OAuth
   app.post('/apps/authorize/token', express.json(), (req, res) => {
     if (req.body.code !== 'good-code') return res.status(400).json({ error: 'invalid_grant' });
-    res.json({ access_token: 'tok-123', token_type: 'bearer', scope: 'read_products,write_scripts', user_id: 123 });
+    res.json({ access_token: 'tok-123', token_type: 'bearer', scope: 'read_products,write_scripts,write_coupons', user_id: 123 });
   });
 
   // ---- Vitrine (tema simplificado, com o mesmo formulário do tema base)

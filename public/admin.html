@@ -5,18 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compre o Conjunto — Painel</title>
 <style>
-  :root { --bg:#f6f6f4; --card:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e4e4df; --accent:#1d1d1b; --danger:#b42318; --ok:#067647; }
+  :root { --bg:#f6f6f4; --card:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#e4e4df; --accent:#1d1d1b; --danger:#b42318; --ok:#067647; --warn:#9a6700; --bar:#3d5a80; }
   * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
   body { margin:0; font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 24px; background:var(--card); border-bottom:1px solid var(--line); }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 24px; background:var(--card); border-bottom:1px solid var(--line); flex-wrap:wrap; }
   header h1 { font-size:18px; margin:0; }
   header small { color:var(--muted); }
+  .embedded header { display:none; }
   main { max-width:980px; margin:0 auto; padding:24px 16px 64px; }
-  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--line); }
-  .tab { padding:10px 14px; border:0; background:none; font:inherit; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--line); overflow-x:auto; }
+  .tab { padding:10px 14px; border:0; background:none; font:inherit; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
   .tab.on { color:var(--ink); border-color:var(--ink); font-weight:600; }
   .row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
-  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font:inherit; cursor:pointer; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font:inherit; cursor:pointer; text-decoration:none; }
   .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
   .btn.danger { color:var(--danger); }
   .btn.sm { padding:5px 9px; font-size:13px; }
@@ -27,14 +29,16 @@
   .muted { color:var(--muted); font-size:13px; }
   .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:99px; background:#ecfdf3; color:var(--ok); margin-left:6px; vertical-align:middle; }
   .badge.off { background:#f2f2ef; color:var(--muted); }
+  .badge.promo { background:#eef4ff; color:#1f4fa3; }
   .thumbs { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .thumb { width:64px; text-align:center; font-size:11px; color:var(--muted); }
   .thumb img, .thumb .ph { width:64px; height:64px; object-fit:cover; border-radius:8px; background:#eee; display:block; margin-bottom:4px; }
   .thumb.missing { color:var(--danger); }
   .empty { text-align:center; padding:48px 16px; color:var(--muted); }
   label { display:block; font-weight:600; font-size:13px; margin:14px 0 6px; }
-  input[type=text], input[type=search], select { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
+  input[type=text], input[type=search], input[type=number], select { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
   input[type=color] { width:48px; height:36px; border:1px solid var(--line); border-radius:8px; padding:2px; background:#fff; }
+  input[type=range] { width:100%; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
   @media (max-width:640px){ .grid2 { grid-template-columns:1fr; } header { padding:12px 16px; } }
   dialog { border:0; border-radius:14px; padding:0; width:min(720px, calc(100vw - 32px)); max-height:calc(100vh - 32px); }
@@ -47,23 +51,68 @@
   .item img, .item .ph { width:40px; height:40px; border-radius:6px; object-fit:cover; background:#eee; flex:none; }
   .item .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .err { color:var(--danger); font-size:13px; margin-top:10px; min-height:1em; }
-  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.2s; pointer-events:none; }
+  .note { background:#fff8e6; border:1px solid #f0e2b6; color:#6b5300; border-radius:8px; padding:10px 12px; font-size:13px; margin-top:8px; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.2s; pointer-events:none; max-width:calc(100vw - 32px); z-index:10; }
   .toast.on { opacity:1; }
-  .preview-btn { display:inline-block; padding:12px 20px; border-radius:8px; font-weight:600; margin-top:8px; }
   .check { display:flex; align-items:center; gap:8px; font-weight:400; }
+  .cats { display:flex; flex-wrap:wrap; gap:8px; max-height:180px; overflow:auto; padding:2px; }
+  .cat { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--line); border-radius:99px; background:#fff; font-size:13px; cursor:pointer; user-select:none; }
+  .cat.on { border-color:var(--ink); background:var(--ink); color:#fff; }
+  .cat .n { display:inline-grid; place-items:center; width:18px; height:18px; border-radius:50%; background:#fff; color:var(--ink); font-size:11px; font-weight:700; }
+  .opts { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:flex-end; margin-top:6px; }
+  .opts label { margin:0 0 6px; }
+  .pk { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .pk .chip { display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 4px; border:1px solid var(--line); border-radius:99px; background:#fff; font-size:13px; max-width:100%; }
+  .pk .chip img, .pk .chip .ph { width:24px; height:24px; border-radius:50%; object-fit:cover; background:#eee; flex:none; }
+  .pk .chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px; }
+  .pk .chip button { border:0; background:none; cursor:pointer; font-size:16px; line-height:1; color:var(--muted); padding:0 2px; }
+  .card-disc { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:14px; }
+  .card-disc select { width:auto; padding:6px 8px; }
+  .card-disc .check { margin:0; }
+  /* prévia do bloco */
+  .pv { border:1px solid var(--line); padding:14px; background:#fff; }
+  .pv h4 { margin:0 0 10px; font-size:15px; }
+  .pv-chips { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 12px; }
+  .pv-chip { min-width:38px; padding:6px 10px; border:1px solid #bbb; background:#fff; font-size:13px; text-align:center; }
+  .pv-chip.sel { border-color:#111; box-shadow:inset 0 0 0 1px #111; }
+  .pv-chip.out { color:#aaa; text-decoration:line-through; }
+  .pv-btn { display:block; width:100%; padding:12px; font-weight:600; text-align:center; }
+  /* métricas */
+  .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:12px; }
+  @media (max-width:760px){ .kpis { grid-template-columns:1fr 1fr; } }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .kpi .v { font-size:24px; font-weight:700; letter-spacing:-.01em; }
+  .kpi .l { color:var(--muted); font-size:13px; }
+  .chart { display:flex; align-items:flex-end; gap:2px; height:120px; padding-top:8px; border-bottom:1px solid var(--line); }
+  .chart .b { flex:1; background:var(--bar); border-radius:4px 4px 0 0; min-height:2px; position:relative; cursor:default; }
+  .chart .b:hover { opacity:.8; }
+  .chart .b .tip { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:12px; padding:5px 8px; border-radius:6px; white-space:nowrap; z-index:2; }
+  .chart .b:hover .tip { display:block; }
+  .axis { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+  .tblwrap { overflow-x:auto; }
 </style>
 </head>
 <body>
 <header>
   <div><h1>Compre o Conjunto</h1><small id="storeLabel"></small></div>
-  <a class="btn sm" href="/logout">Sair</a>
+  <div style="display:flex;gap:8px">
+    <a class="btn sm" href="/lojas" id="switchStore" hidden>Trocar loja</a>
+    <a class="btn sm" href="/logout" id="logout">Sair</a>
+  </div>
 </header>
 <main>
-  <div class="tabs">
+  <div class="tabs" role="tablist">
     <button class="tab on" data-tab="sets">Conjuntos</button>
+    <button class="tab" data-tab="suggest">Montar conjuntos</button>
+    <button class="tab" data-tab="metrics">Métricas</button>
     <button class="tab" data-tab="settings">Aparência</button>
   </div>
 
+  <!-- CONJUNTOS -->
   <section id="tab-sets">
     <div class="row">
       <p class="muted" style="margin:0">O bloco aparece na página de cada produto que faz parte de um conjunto ativo.</p>
@@ -72,6 +121,48 @@
     <div id="sets"></div>
   </section>
 
+  <!-- SUGESTÕES -->
+  <section id="tab-suggest" hidden>
+    <div class="card">
+      <h3 style="margin:0 0 4px;font-size:16px">Montar conjuntos por categoria</h3>
+      <p class="muted" style="margin:0 0 12px">Escolha as categorias na ordem em que as peças devem aparecer (ex.: Camisetas → Bermudas → Mochilas). O app junta as peças com a mesma estampa no nome. Em cada conjunto você pode trocar, tirar ou <b>adicionar várias peças da mesma categoria</b> e escolher um desconto só para ele. Você também pode marcar uma única categoria (ex.: Blusas Premium) e montar um conjunto só com peças dela no cartão “Montar do seu jeito”.</p>
+      <div class="cats" id="cats"><span class="muted">Carregando categorias…</span></div>
+      <label class="check" style="margin-top:12px"><input type="checkbox" id="sgAll"> <span>Só criar quando houver peça de <b>todas</b> as categorias escolhidas</span></label>
+      <div class="note" id="sgNote" hidden></div>
+      <div class="row" style="margin:16px 0 0;justify-content:flex-end">
+        <button class="btn" id="loadSuggest">Buscar conjuntos</button>
+        <button class="btn primary" id="createAll" disabled>Criar todos</button>
+      </div>
+    </div>
+    <div id="suggestions"></div>
+  </section>
+
+  <!-- MÉTRICAS -->
+  <section id="tab-metrics" hidden>
+    <div class="row">
+      <p class="muted" style="margin:0">Desempenho do bloco “Compre o conjunto” na loja.</p>
+      <select id="mDays" style="width:auto">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
+      </select>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="card">
+      <div class="row" style="margin:0 0 4px"><b style="font-size:14px">Valor adicionado ao carrinho por dia</b></div>
+      <div class="chart" id="chart" role="img"></div>
+      <div class="axis" id="axis"></div>
+    </div>
+    <div class="card tblwrap">
+      <table>
+        <thead><tr><th>Conjunto</th><th class="n">Visualizações</th><th class="n">Adicionados</th><th class="n">Conversão</th><th class="n">Peças</th><th class="n">Valor</th></tr></thead>
+        <tbody id="mTable"></tbody>
+      </table>
+    </div>
+    <p class="muted">“Valor” é o total das peças colocadas no carrinho pelo botão do conjunto. Visualização conta quando o bloco aparece na tela.</p>
+  </section>
+
+  <!-- APARÊNCIA -->
   <section id="tab-settings" hidden>
     <div class="card">
       <div class="grid2">
@@ -87,6 +178,17 @@
           </select>
         </div>
         <div>
+          <label for="sStyle">Escolha de tamanho/cor</label>
+          <select id="sStyle">
+            <option value="buttons">Botões (como no tema)</option>
+            <option value="select">Lista (menu suspenso)</option>
+          </select>
+        </div>
+        <div>
+          <label for="sRadius">Cantos arredondados: <span id="sRadiusV"></span></label>
+          <input type="range" id="sRadius" min="0" max="40" step="2">
+        </div>
+        <div>
           <label>Cor do botão</label>
           <input type="color" id="sColor">
         </div>
@@ -97,7 +199,13 @@
       </div>
       <label class="check"><input type="checkbox" id="sMobile"> Mostrar também no celular</label>
       <label>Prévia</label>
-      <span class="preview-btn" id="preview"></span>
+      <div class="pv" id="pv">
+        <h4>Compre o conjunto</h4>
+        <div class="muted">Bermuda Premium · Tamanho</div>
+        <div id="pvVar"></div>
+        <span class="pv-btn" id="pvBtn"></span>
+      </div>
+      <p class="muted">A fonte do bloco é sempre a mesma do tema da loja.</p>
       <div class="row" style="margin:20px 0 0">
         <button class="btn sm" id="refreshCache" title="Use depois de mudar preço, estoque ou fotos">Atualizar dados dos produtos</button>
         <button class="btn primary" id="saveSettings">Salvar</button>
@@ -112,10 +220,20 @@
       <h2 style="margin:0 0 4px;font-size:18px" id="dlgTitle">Novo conjunto</h2>
       <p class="muted" style="margin:0">Escolha de 2 a 8 peças. A ordem aqui é a ordem na loja.</p>
       <div class="grid2">
-        <div><label for="fName">Nome interno</label><input type="text" id="fName" placeholder="Ex.: Conjunto alfaiataria bege" required></div>
+        <div><label for="fName">Nome interno</label><input type="text" id="fName" placeholder="Ex.: Conjunto Bozo" required></div>
         <div><label for="fTitle">Título na loja</label><input type="text" id="fTitle" placeholder="Compre o conjunto"></div>
+        <div>
+          <label for="fDiscount">Desconto levando o conjunto</label>
+          <select id="fDiscount">
+            <option value="0">Sem desconto</option>
+            <option value="5">5%</option><option value="10">10%</option><option value="15">15%</option>
+            <option value="20">20%</option><option value="25">25%</option><option value="30">30%</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end"><label class="check" style="margin-bottom:10px"><input type="checkbox" id="fActive" checked> Ativo</label></div>
       </div>
-      <label class="check"><input type="checkbox" id="fActive" checked> Ativo</label>
+      <label class="check" id="fCombineWrap" hidden><input type="checkbox" id="fCombine"> Permitir combinar com outros descontos (promoções e cupons da loja)</label>
+      <div class="note" id="discountNote" hidden></div>
 
       <label>Peças do conjunto</label>
       <div class="list" id="chosen"></div>
@@ -132,48 +250,91 @@
   </form>
 </dialog>
 
-<div class="toast" id="toast"></div>
+<dialog id="ask" style="width:min(420px, calc(100vw - 32px))">
+  <form method="dialog">
+    <div class="dlg-body"><p id="askMsg" style="margin:0"></p></div>
+    <div class="dlg-foot"><button class="btn" value="no">Cancelar</button><button class="btn primary" value="yes">Confirmar</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
 
+<script src="/static/nexo.js"></script>
 <script>
+const APP_ID = '__APP_ID__';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const img = (src, cls='') => src ? `<img src="${esc(src)}" alt="" loading="lazy" class="${cls}">` : `<span class="ph ${cls}"></span>`;
+const money = v => Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+const num = v => Number(v || 0).toLocaleString('pt-BR');
 
+// ---------- Dentro do admin da Nuvemshop (Nexo) ----------
+let nexo = null;
+async function bootNexo() {
+  const N = window['@tiendanube/nexo'];
+  if (window.self === window.top || !N || !APP_ID) return false;
+  try {
+    const inst = N.create({ clientId: APP_ID, log: false });
+    await N.connect(inst, 4000);
+    N.iAmReady(inst);
+    nexo = { inst, N };
+    document.body.classList.add('embedded');
+    return true;
+  } catch (e) { console.warn('Nexo indisponível, usando login normal', e); return false; }
+}
+async function authHeader() {
+  if (!nexo) return {};
+  try { return { Authorization: 'Bearer ' + await nexo.N.getSessionToken(nexo.inst) }; } catch { return {}; }
+}
+
+let ME = null;
 async function api(method, url, body) {
-  const r = await fetch('/api/admin' + url, { method, credentials:'include',
-    headers: body ? {'Content-Type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined });
-  if (r.status === 401) { location.href = '/'; throw new Error('sessão'); }
+  const headers = Object.assign(body ? {'Content-Type':'application/json'} : {}, await authHeader());
+  const r = await fetch('/api/admin' + url, { method, credentials:'include', headers, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) {
+    const d = await r.json().catch(() => ({}));
+    if (d.agency) location.href = '/lojas';
+    else if (nexo) document.querySelector('main').innerHTML = '<div class="card empty">Não foi possível validar o acesso. Feche e abra o app de novo pelo admin da Nuvemshop.</div>';
+    else location.href = '/login';
+    throw new Error('sessão');
+  }
   if (r.status === 204) return null;
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || 'Erro inesperado');
   return data;
 }
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2200); }
+function ask(msg) {
+  return new Promise(res => { const d = $('#ask'); $('#askMsg').textContent = msg; d.returnValue = '';
+    d.onclose = () => res(d.returnValue === 'yes'); d.showModal(); });
+}
+function toast(msg, ms = 2400) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), ms); }
 
-// ---- Abas
+// ---------- Abas ----------
+const loaded = {};
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
-  $('#tab-sets').hidden = b.dataset.tab !== 'sets';
-  $('#tab-settings').hidden = b.dataset.tab !== 'settings';
+  ['sets', 'suggest', 'metrics', 'settings'].forEach(t => $('#tab-' + t).hidden = b.dataset.tab !== t);
+  if (b.dataset.tab === 'suggest' && !loaded.suggest) loadSuggestions();
+  if (b.dataset.tab === 'metrics') loadMetrics();
 });
 
-// ---- Conjuntos
+// ---------- Conjuntos ----------
 let sets = [];
 async function loadSets() {
   $('#sets').innerHTML = '<p class="muted">Carregando…</p>';
   sets = await api('GET', '/sets');
   if (!sets.length) {
-    $('#sets').innerHTML = '<div class="card empty">Nenhum conjunto ainda.<br>Crie o primeiro para mostrar o botão “Compre o conjunto” na loja.</div>';
+    $('#sets').innerHTML = '<div class="card empty">Nenhum conjunto ainda.<br>Crie o primeiro ou veja a aba <b>Sugestões</b>.</div>';
     return;
   }
   $('#sets').innerHTML = sets.map(s => `
     <div class="card">
       <div class="set-head">
         <div>
-          <h3>${esc(s.name)} <span class="badge ${s.active ? '' : 'off'}">${s.active ? 'Ativo' : 'Pausado'}</span></h3>
+          <h3>${esc(s.name)} <span class="badge ${s.active ? '' : 'off'}">${s.active ? 'Ativo' : 'Pausado'}</span>
+            ${s.discount_percent ? `<span class="badge promo" title="Cupom ${esc(s.coupon_code || '')}">−${s.discount_percent}% no conjunto${s.combine_discounts ? ' · acumula' : ' · não acumula'}</span>` : ''}</h3>
           <div class="muted">Título na loja: “${esc(s.title)}” · ${s.products.length} peças</div>
         </div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn sm" data-toggle="${s.id}">${s.active ? 'Pausar' : 'Ativar'}</button>
           <button class="btn sm" data-edit="${s.id}">Editar</button>
           <button class="btn sm danger" data-del="${s.id}">Excluir</button>
@@ -184,20 +345,20 @@ async function loadSets() {
       </div>
     </div>`).join('');
 }
-
+const setBody = s => ({ name:s.name, title:s.title, product_ids:s.product_ids, active:s.active, discount_percent:s.discount_percent || 0, combine_discounts:!!s.combine_discounts });
 $('#sets').onclick = async e => {
   const b = e.target.closest('button'); if (!b) return;
   const find = id => sets.find(s => s.id == id);
   if (b.dataset.edit) openDialog(find(b.dataset.edit));
-  if (b.dataset.del && confirm('Excluir este conjunto?')) { await api('DELETE', '/sets/' + b.dataset.del); toast('Conjunto excluído'); loadSets(); }
+  if (b.dataset.del && await ask('Excluir este conjunto? Se ele tiver desconto, o cupom também é removido.')) { await api('DELETE', '/sets/' + b.dataset.del); toast('Conjunto excluído'); loadSets(); }
   if (b.dataset.toggle) {
     const s = find(b.dataset.toggle);
-    await api('PUT', '/sets/' + s.id, { name:s.name, title:s.title, product_ids:s.product_ids, active:!s.active });
+    await api('PUT', '/sets/' + s.id, { ...setBody(s), active: !s.active });
     toast(s.active ? 'Conjunto pausado' : 'Conjunto ativado'); loadSets();
   }
 };
 
-// ---- Diálogo de edição
+// ---------- Diálogo ----------
 let editing = null, chosen = [], lastResults = [];
 function openDialog(set) {
   editing = set || null;
@@ -205,12 +366,29 @@ function openDialog(set) {
   $('#fName').value = set ? set.name : '';
   $('#fTitle').value = set ? set.title : 'Compre o conjunto';
   $('#fActive').checked = set ? set.active : true;
+  $('#fDiscount').value = String(set ? set.discount_percent || 0 : 0);
+  $('#fCombine').checked = !!(set && set.combine_discounts);
   chosen = set ? set.products.map(p => ({ id:p.id, name:p.name, image:p.image })) : [];
   $('#fSearch').value = ''; $('#fErr').textContent = '';
-  renderChosen(); search('');
+  updateDiscountNote(); renderChosen(); search('');
   $('#dlg').showModal();
 }
 $('#newSet').onclick = () => openDialog(null);
+function updateDiscountNote() {
+  const d = Number($('#fDiscount').value);
+  const n = $('#discountNote');
+  if (!ME.can_coupons) {
+    $('#fDiscount').disabled = true;
+    n.hidden = false;
+    n.innerHTML = 'Para usar desconto, ative a permissão <b>Cupons</b> do app no Portal de Parceiros e reinstale o app na loja.';
+    return;
+  }
+  n.hidden = !d;
+  $('#fCombineWrap').hidden = !d;
+  n.textContent = `Criaremos um cupom de ${d}% válido só para estas peças. Ele é aplicado sozinho quando a cliente usa o botão do conjunto.` +
+    ($('#fCombine').checked ? ' Ele soma com promoções da loja.' : ' Ele não soma com outras promoções ou descontos da loja.');
+}
+$('#fDiscount').onchange = $('#fCombine').onchange = updateDiscountNote;
 
 function renderChosen() {
   $('#chosen').innerHTML = chosen.length ? chosen.map((p, i) => `
@@ -229,7 +407,6 @@ $('#chosen').onclick = e => {
   if (d.down != null) { const i = +d.down; [chosen[i + 1], chosen[i]] = [chosen[i], chosen[i + 1]]; }
   renderChosen();
 };
-
 let timer;
 $('#fSearch').oninput = e => { clearTimeout(timer); timer = setTimeout(() => search(e.target.value), 300); };
 async function search(q) {
@@ -250,39 +427,241 @@ $('#results').onclick = e => {
   const p = lastResults.find(x => x.id == b.dataset.add);
   chosen.push({ id:p.id, name:p.name, image:p.image }); renderChosen();
 };
-
 $('#setForm').onsubmit = async e => {
   if (e.submitter && e.submitter.value === 'cancel') return;
   e.preventDefault();
-  const body = { name:$('#fName').value, title:$('#fTitle').value, active:$('#fActive').checked, product_ids:chosen.map(p => p.id) };
+  const body = { name:$('#fName').value, title:$('#fTitle').value, active:$('#fActive').checked,
+    product_ids:chosen.map(p => p.id), discount_percent:Number($('#fDiscount').value), combine_discounts:$('#fCombine').checked };
   $('#saveSet').disabled = true;
   try {
-    if (editing) await api('PUT', '/sets/' + editing.id, body); else await api('POST', '/sets', body);
-    $('#dlg').close(); toast('Conjunto salvo'); loadSets();
+    const r = editing ? await api('PUT', '/sets/' + editing.id, body) : await api('POST', '/sets', body);
+    $('#dlg').close();
+    r.warning ? toast(r.warning, 6000) : toast('Conjunto salvo');
+    loadSets(); loaded.suggest = false;
   } catch (err) { $('#fErr').textContent = err.message; }
   finally { $('#saveSet').disabled = false; }
 };
 
-// ---- Aparência
-function updatePreview() {
-  const p = $('#preview');
-  p.textContent = $('#sButton').value || 'Comprar o conjunto';
-  p.style.background = $('#sColor').value; p.style.color = $('#sText').value;
+// ---------- Sugestões ----------
+let suggestions = [];
+let categories = null, selCats = [];
+async function loadCategories() {
+  try { categories = await api('GET', '/categories'); } catch (err) { categories = []; }
+  renderCats();
 }
-['#sButton', '#sColor', '#sText'].forEach(s => $(s).oninput = updatePreview);
+function renderCats() {
+  $('#cats').innerHTML = categories.length ? categories.map(c => {
+    const i = selCats.indexOf(c.id);
+    return `<span class="cat ${i >= 0 ? 'on' : ''}" data-cat="${c.id}" role="checkbox" aria-checked="${i >= 0}" tabindex="0">${i >= 0 ? `<span class="n">${i + 1}</span>` : ''}${esc(c.name)}</span>`;
+  }).join('') : '<span class="muted">Nenhuma categoria encontrada na loja.</span>';
+}
+$('#cats').onclick = e => {
+  const el = e.target.closest('[data-cat]'); if (!el) return;
+  const id = Number(el.dataset.cat), i = selCats.indexOf(id);
+  i >= 0 ? selCats.splice(i, 1) : selCats.push(id);
+  renderCats();
+};
+$('#cats').onkeydown = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); e.target.click(); } };
+function updateSgNote() {
+  if (ME.can_coupons) { $('#sgNote').hidden = true; return; }
+  $('#sgNote').hidden = false;
+  $('#sgNote').innerHTML = 'Para usar desconto nos conjuntos, ative a permissão <b>Cupons</b> do app no Portal de Parceiros e reinstale o app na loja.';
+}
+
+let catalog = {}, searchCats = [];
+const MAX_PIECES = 8;
+const catName = id => (categories || []).find(c => c.id == id)?.name || 'Categoria';
+const findInCatalog = id => { for (const k in catalog) { const p = catalog[k].find(x => x.id == id); if (p) return p; } return null; };
+const DISCOUNTS = [0, 5, 10, 15, 20, 25, 30];
+// cada cartão tem o próprio desconto: nada é aplicado em outros conjuntos
+const newCard = (extra = {}) => ({ name: '', picks: {}, discount: 0, combine: false, ...extra });
+
+async function loadSuggestions() {
+  loaded.suggest = true;
+  if (!categories) await loadCategories();
+  updateSgNote();
+  $('#suggestions').innerHTML = '<p class="muted">Lendo os produtos da loja… isso pode levar alguns segundos.</p>';
+  $('#createAll').disabled = true;
+  searchCats = selCats.slice();
+  const qs = searchCats.length ? `?categories=${searchCats.join(',')}${$('#sgAll').checked ? '&all=1' : ''}` : '';
+  let r;
+  try { r = await api('GET', '/suggestions' + qs); }
+  catch (err) { $('#suggestions').innerHTML = `<div class="card err">${esc(err.message)}</div>`; return; }
+  catalog = r.catalog || {};
+  suggestions = r.suggestions.map(sg => {
+    const picks = {};
+    if (searchCats.length) searchCats.forEach(c => { picks[c] = sg.products.filter(x => x.category_id == c).map(x => x.id); });
+    return newCard({ ...sg, picks });
+  });
+  // Montar do seu jeito: escolhe as peças de cada categoria, sem depender do nome
+  if (searchCats.length) suggestions.unshift(newCard({ manual: true, picks: Object.fromEntries(searchCats.map(c => [c, []])) }));
+  renderSuggestions();
+}
+
+// peças escolhidas do conjunto, na ordem das categorias (sem repetir)
+function pickedIds(sg) {
+  if (!searchCats.length) return sg.products.map(p => p.id);
+  const ids = [];
+  searchCats.forEach(c => (sg.picks[c] || []).forEach(id => { if (!ids.includes(id)) ids.push(id); }));
+  return ids;
+}
+function slotRow(sg, i, c) {
+  const list = catalog[c] || [];
+  const chosen = sg.picks[c] || [];
+  const full = pickedIds(sg).length >= MAX_PIECES;
+  const avail = list.filter(p => !pickedIds(sg).includes(p.id));
+  return `<div class="item" style="align-items:flex-start">
+    <div style="flex:1;min-width:0">
+      <div class="muted" style="font-size:12px">${esc(catName(c))} · ${chosen.length} peça(s)</div>
+      <div class="pk">${chosen.map(id => { const p = findInCatalog(id) || { name: '#' + id };
+        return `<span class="chip">${img(p.image)}<span title="${esc(p.name)}">${esc(p.name)}</span><button type="button" data-rmpick="${i}" data-cat="${c}" data-id="${id}" aria-label="Tirar ${esc(p.name)}">×</button></span>`; }).join('')}
+      </div>
+      <select data-addpick="${i}" data-cat="${c}" aria-label="Adicionar peça de ${esc(catName(c))}" style="margin-top:8px" ${full || !avail.length ? 'disabled' : ''}>
+        <option value="">${full ? `Limite de ${MAX_PIECES} peças por conjunto` : avail.length ? '+ Adicionar peça desta categoria' : 'Todas as peças já foram adicionadas'}</option>
+        ${avail.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+      </select>
+    </div></div>`;
+}
+function discountRow(sg, i) {
+  if (!ME.can_coupons) return '';
+  return `<div class="card-disc">
+    <label style="margin:0;font-weight:600;font-size:13px" for="dc${i}">Desconto deste conjunto</label>
+    <select id="dc${i}" data-disc="${i}">${DISCOUNTS.map(d => `<option value="${d}" ${d === sg.discount ? 'selected' : ''}>${d ? d + '%' : 'Sem desconto'}</option>`).join('')}</select>
+    ${sg.discount ? `<label class="check"><input type="checkbox" data-comb="${i}" ${sg.combine ? 'checked' : ''}> Permitir combinar com outros descontos</label>` : ''}
+    ${sg.discount ? `<span class="muted">Cupom só para as peças deste conjunto${sg.combine ? '' : ', sem somar com outras promoções'}.</span>` : ''}
+  </div>`;
+}
+function renderSuggestions() {
+  const real = suggestions.filter(s => !s.manual);
+  $('#createAll').disabled = !real.length;
+  if (!suggestions.length) { $('#suggestions').innerHTML = '<div class="card empty">Nenhum conjunto novo encontrado com esses filtros.</div>'; return; }
+  $('#suggestions').innerHTML = suggestions.map((sg, i) => {
+    const n = pickedIds(sg).length;
+    const head = sg.manual
+      ? `<div style="flex:1;min-width:220px"><h3 style="margin:0 0 6px">Montar do seu jeito</h3>
+           <input type="text" data-name="${i}" value="${esc(sg.name)}" placeholder="Nome do conjunto (ex.: Kit Blusas Premium)">
+           <div class="muted" style="margin-top:4px">${n} peça(s) · escolha quantas quiser de cada categoria (até ${MAX_PIECES})</div></div>`
+      : `<div style="flex:1;min-width:220px">${searchCats.length
+           ? `<input type="text" data-name="${i}" value="${esc(sg.name)}" aria-label="Nome do conjunto" style="font-weight:600">`
+           : `<h3>${esc(sg.name)}</h3>`}<div class="muted" style="margin-top:4px">${n} peça(s)</div></div>`;
+    const actions = `<div style="display:flex;gap:6px;align-items:flex-start">
+        ${sg.manual ? '' : `<button class="btn sm" data-ignore="${i}">Ignorar</button>`}
+        <button class="btn sm primary" data-create="${i}" ${n < 2 ? 'disabled title="Escolha pelo menos 2 peças"' : ''}>Criar conjunto</button></div>`;
+    const body = searchCats.length
+      ? `<div class="list" style="margin-top:12px;max-height:none">${searchCats.map(c => slotRow(sg, i, c)).join('')}</div>`
+      : `<div class="thumbs">${sg.products.map(p => `<div class="thumb" title="${esc(p.name)}">${img(p.image)}${esc(p.name).slice(0, 22)}</div>`).join('')}</div>`;
+    return `<div class="card"${sg.manual ? ' style="border-style:dashed"' : ''}><div class="set-head">${head}${actions}</div>${body}${discountRow(sg, i)}</div>`;
+  }).join('');
+}
+$('#suggestions').oninput = e => {
+  const t = e.target;
+  if (t.dataset.name != null) suggestions[+t.dataset.name].name = t.value;
+};
+$('#suggestions').onchange = e => {
+  const t = e.target, d = t.dataset;
+  if (d.addpick != null && t.value) {
+    const sg = suggestions[+d.addpick];
+    (sg.picks[d.cat] = sg.picks[d.cat] || []).push(Number(t.value));
+    renderSuggestions();
+  }
+  if (d.disc != null) { const sg = suggestions[+d.disc]; sg.discount = Number(t.value); if (!sg.discount) sg.combine = false; renderSuggestions(); }
+  if (d.comb != null) { suggestions[+d.comb].combine = t.checked; renderSuggestions(); }
+};
+async function createSuggestion(sg) {
+  const ids = pickedIds(sg);
+  let name = (sg.name || '').trim();
+  if (!name) { const first = findInCatalog(ids[0]); name = 'Conjunto ' + (first ? first.name : ''); }
+  return api('POST', '/sets', { name, title: 'Compre o conjunto', product_ids: ids, active: true,
+    discount_percent: sg.discount || 0, combine_discounts: !!(sg.discount && sg.combine) });
+}
+$('#suggestions').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rmpick != null) {
+    const sg = suggestions[+b.dataset.rmpick];
+    sg.picks[b.dataset.cat] = (sg.picks[b.dataset.cat] || []).filter(id => id != b.dataset.id);
+    renderSuggestions(); return;
+  }
+  if (b.dataset.ignore) { suggestions.splice(+b.dataset.ignore, 1); renderSuggestions(); }
+  if (b.dataset.create) {
+    b.disabled = true;
+    const sg = suggestions[+b.dataset.create];
+    try {
+      const r = await createSuggestion(sg);
+      if (sg.manual) Object.assign(sg, newCard({ manual: true, picks: Object.fromEntries(searchCats.map(c => [c, []])) }));
+      else suggestions = suggestions.filter(x => x !== sg);
+      renderSuggestions();
+      r.warning ? toast(r.warning, 6000) : toast(`“${r.name}” criado${r.discount_percent ? ` com ${r.discount_percent}% de desconto` : ''}`); loadSets();
+    } catch (err) { toast(err.message, 5000); b.disabled = false; }
+  }
+};
+$('#createAll').onclick = async () => {
+  const list = suggestions.filter(s => !s.manual && pickedIds(s).length >= 2);
+  const withDisc = list.filter(s => s.discount).length;
+  if (!await ask(`Criar ${list.length} conjunto(s) agora? ${withDisc ? `${withDisc} com desconto (o que você escolheu em cada um) e ${list.length - withDisc} sem desconto.` : 'Nenhum terá desconto.'} Eles já entram ativos na loja.`)) return;
+  $('#createAll').disabled = true;
+  let n = 0;
+  for (const sg of list) { try { await createSuggestion(sg); n++; suggestions = suggestions.filter(x => x !== sg); } catch {} }
+  renderSuggestions(); loadSets(); toast(`${n} conjunto(s) criado(s)`);
+};
+$('#loadSuggest').onclick = loadSuggestions;
+
+// ---------- Métricas ----------
+async function loadMetrics() {
+  const m = await api('GET', '/metrics?days=' + $('#mDays').value);
+  const t = m.bySet.reduce((a, r) => ({ views:a.views + r.views, adds:a.adds + r.adds, items:a.items + r.items, value:a.value + r.value }), { views:0, adds:0, items:0, value:0 });
+  const conv = t.views ? (t.adds / t.views * 100) : 0;
+  $('#kpis').innerHTML = [
+    ['Visualizações do bloco', num(t.views)],
+    ['Conjuntos adicionados', num(t.adds)],
+    ['Conversão do bloco', conv.toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%'],
+    ['Valor adicionado ao carrinho', money(t.value)],
+  ].map(([l, v]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  // série diária completa (dias sem evento = 0)
+  const days = [], start = new Date(m.since + 'T00:00:00Z');
+  const byDay = Object.fromEntries(m.byDay.map(d => [d.day, d]));
+  for (let i = 0; i < m.days; i++) { const d = new Date(start.getTime() + i * 864e5).toISOString().slice(0, 10); days.push(byDay[d] || { day:d, views:0, adds:0, value:0 }); }
+  const max = Math.max(1, ...days.map(d => d.value));
+  const fmtDay = d => d.slice(8, 10) + '/' + d.slice(5, 7);
+  $('#chart').setAttribute('aria-label', 'Valor adicionado ao carrinho por dia');
+  $('#chart').innerHTML = days.map(d => `<div class="b" style="height:${Math.max(1.5, d.value / max * 100)}%"><span class="tip">${fmtDay(d.day)} · ${money(d.value)} · ${d.adds} conjunto(s)</span></div>`).join('');
+  $('#axis').innerHTML = `<span>${fmtDay(days[0].day)}</span><span>${fmtDay(days[days.length - 1].day)}</span>`;
+  $('#mTable').innerHTML = m.bySet.length ? m.bySet.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${num(r.views)}</td><td class="n">${num(r.adds)}</td>
+    <td class="n">${r.views ? (r.adds / r.views * 100).toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%' : '—'}</td><td class="n">${num(r.items)}</td><td class="n">${money(r.value)}</td></tr>`).join('')
+    : '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">Ainda sem dados neste período.</td></tr>';
+}
+$('#mDays').onchange = loadMetrics;
+
+// ---------- Aparência ----------
+function updatePreview() {
+  const r = $('#sRadius').value + 'px';
+  $('#sRadiusV').textContent = $('#sRadius').value + 'px';
+  $('#pv').style.borderRadius = r;
+  const btn = $('#pvBtn');
+  btn.textContent = $('#sButton').value || 'Comprar o conjunto';
+  btn.style.background = $('#sColor').value; btn.style.color = $('#sText').value; btn.style.borderRadius = r;
+  $('#pvVar').innerHTML = $('#sStyle').value === 'buttons'
+    ? '<div class="pv-chips">' + ['38', '40', '42', '44'].map((s, i) => `<span class="pv-chip ${i === 1 ? 'sel' : ''} ${i === 3 ? 'out' : ''}" style="border-radius:${r}">${s}</span>`).join('') + '</div>'
+    : `<select style="max-width:220px;margin:6px 0 12px;border-radius:${r}"><option>Selecione tamanho</option></select>`;
+}
+['#sButton', '#sColor', '#sText', '#sStyle', '#sRadius'].forEach(s => $(s).oninput = updatePreview);
 $('#saveSettings').onclick = async () => {
-  await api('PUT', '/settings', { button_text:$('#sButton').value, primary_color:$('#sColor').value,
-    text_color:$('#sText').value, after_add:$('#sAfter').value, show_on_mobile:$('#sMobile').checked });
-  toast('Aparência salva');
+  await api('PUT', '/settings', { button_text:$('#sButton').value, primary_color:$('#sColor').value, text_color:$('#sText').value,
+    after_add:$('#sAfter').value, show_on_mobile:$('#sMobile').checked, variant_style:$('#sStyle').value, radius:Number($('#sRadius').value) });
+  toast('Aparência salva — aparece na loja em até 1 minuto');
 };
 $('#refreshCache').onclick = async () => { await api('POST', '/refresh-cache'); toast('Dados dos produtos atualizados'); loadSets(); };
 
+// ---------- Início ----------
 (async () => {
-  const me = await api('GET', '/me');
-  $('#storeLabel').textContent = 'Loja #' + me.store_id;
-  const s = me.settings;
+  await bootNexo();
+  ME = await api('GET', '/me');
+  $('#storeLabel').textContent = ME.store_name ? `${ME.store_name} · #${ME.store_id}` : 'Loja #' + ME.store_id;
+  $('#switchStore').hidden = !ME.agency;
+  const s = ME.settings;
   $('#sButton').value = s.button_text; $('#sColor').value = s.primary_color; $('#sText').value = s.text_color;
-  $('#sAfter').value = s.after_add; $('#sMobile').checked = s.show_on_mobile; updatePreview();
+  $('#sAfter').value = s.after_add; $('#sMobile').checked = s.show_on_mobile;
+  $('#sStyle').value = s.variant_style; $('#sRadius').value = s.radius; updatePreview();
   loadSets();
 })();
 </script>

@@ -10,6 +10,21 @@ O app coloca um bloco **"Compre o conjunto"** na página de produto da loja. Nel
 | **Script da vitrine** (`/widget.js`) | Mostra o bloco nas páginas dos produtos que fazem parte de um conjunto ativo. Esconde variações esgotadas, mostra o preço promocional e obriga a escolher o tamanho. |
 | **API** | Faz a instalação via OAuth, guarda os conjuntos em SQLite, recebe os webhooks de desinstalação e LGPD e responde à vitrine com um cache de 2 minutos. |
 
+### Novidades da versão 2
+
+| Recurso | Como funciona |
+|---|---|
+| **Dentro do admin da Nuvemshop** | O lojista abre o app em *Meus aplicativos* e edita os conjuntos sem sair da Nuvemshop. O acesso é validado pelo token de sessão do Nexo (assinado com o Client Secret), sem senha. |
+| **Login da agência** (`/login`) | Você entra com e-mail e senha e vê todas as lojas que instalaram o app (`/lojas`). Escolhe uma e gerencia como se fosse o lojista. |
+| **Sugestões** | Lê os produtos da loja e agrupa peças de tipos diferentes com a mesma estampa no nome (ex.: *Camiseta Premium Bozo* + *Bermuda Premium Bozo (TRETA)*). Cria um ou todos com um clique. |
+| **Métricas** | Visualizações do bloco, conjuntos adicionados, conversão, peças e valor colocado no carrinho, por conjunto e por dia (7, 30 ou 90 dias). Não guarda dado de cliente. |
+| **Visual igual ao tema** | Tamanhos em botões (ou lista), cantos arredondados configuráveis, fonte do tema. Pré-seleciona o tamanho que a cliente já escolheu na página e repete nas outras peças quando o tamanho existe. |
+| **Desconto no conjunto** | Ao escolher um desconto (5% a 30%), o app cria um cupom da Nuvemshop válido só para as peças do conjunto. Depois de adicionar, a cliente passa por `/discount/CUPOM` e o desconto já entra no carrinho. |
+| **Combinar descontos** (v2.1) | Cada conjunto com desconto tem a caixa *Permitir combinar com outros descontos*. Desmarcada (padrão), o cupom do conjunto **não** soma com promoções e outros descontos da loja. |
+| **Montar conjuntos por categoria** (v2.1) | Na aba *Montar conjuntos*, escolha as categorias na ordem desejada (ex.: Camisetas → Bermudas → Mochilas). O app junta uma peça de cada categoria com a mesma estampa no nome; em cada cartão você troca, tira ou adiciona **várias peças da mesma categoria** (até 8 por conjunto) e escolhe o **desconto daquele conjunto** — o desconto de um cartão nunca é aplicado nos outros. Com uma única categoria marcada (ex.: Blusas Premium), use o cartão *Montar do seu jeito* para montar um kit só com peças dela. |
+
+> **Sobre o desconto:** o cupom vale para as peças do conjunto, inclusive se a cliente desmarcar alguma peça. O código não aparece na loja, mas quem descobrir o código consegue usar nessas peças. Para descontos maiores, prefira as *Promoções* da própria Nuvemshop (ex.: "Leve 2, pague menos").
+
 Precisa de Node 22.13 ou mais novo. A única dependência é o Express. O banco é o SQLite que já vem com o Node.
 
 ---
@@ -58,6 +73,16 @@ Depois, para voltar ao painel, é só abrir o app em **Meus aplicativos**, no ad
 
 ---
 
+## Atualizar da versão 1 para a 2
+
+1. **Código:** substitua os arquivos do seu repositório pelos deste pacote e faça o deploy. O banco é atualizado sozinho, sem perder os conjuntos.
+2. **Railway → Variables:** adicione `AGENCY_EMAIL` e `AGENCY_PASSWORD` (para o login da agência) e confira `APP_URL`.
+3. **Portal de Parceiros → Configuração → Editar dados:**
+   - marque **Incorporar ao administrador do lojista** (o app passa a abrir dentro da Nuvemshop);
+   - em **Permissões**, mantenha *Produtos: leitura* e *Scripts* e adicione **Cupons: edição** (para o desconto).
+4. **Portal de Parceiros → Scripts → Compre Junto:** adicione uma versão nova com o arquivo de `https://SEU-APP/widget.js`, coloque em *loja demo* e depois clique em **Instalar nas Lojas**.
+5. **Reautorizar a loja:** como a permissão mudou, abra `https://LOJA/admin/apps/APP_ID/authorize` e aceite de novo. Os conjuntos continuam lá.
+
 ## Onde o bloco aparece
 Por padrão, o bloco entra logo abaixo do formulário de compra (`#product_form` / `.js-product-form`), que existe em todos os temas oficiais.
 
@@ -79,7 +104,7 @@ npm test                        # testes automatizados (usam uma Nuvemshop simul
 # simulação completa, sem loja real:
 node test/mock-nuvemshop.js     # vitrine falsa em http://localhost:4000
 NUVEMSHOP_API_BASE=http://localhost:4000 DEV_STORE_ID=123 DEV_ACCESS_TOKEN=tok-123 npm run dev
-# painel: http://localhost:3000/dev/login   ·   vitrine: http://localhost:4000/produtos/calca/
+# painel: http://localhost:3000/dev/login  (agência: /dev/login?agency=1)   ·   vitrine: http://localhost:4000/produtos/calca/
 ```
 
 ## Estrutura
@@ -87,8 +112,12 @@ NUVEMSHOP_API_BASE=http://localhost:4000 DEV_STORE_ID=123 DEV_ACCESS_TOKEN=tok-1
 src/server.js       rotas (OAuth, painel, API pública, webhooks, widget.js)
 src/nuvemshop.js    cliente da API Nuvemshop + cache de produtos
 src/db.js           SQLite (lojas, conjuntos, configurações)
-src/session.js      login do painel (cookie assinado)
-public/admin.html   painel
+src/session.js      login do painel (cookie assinado, token do Nexo, login da agência)
+src/suggest.js      sugestões automáticas de conjuntos
+public/admin.html   painel (abas Conjuntos, Sugestões, Métricas, Aparência)
+public/login.html   tela de login
+public/lojas.html   lista de lojas da agência
+public/nexo.js      biblioteca Nexo da Nuvemshop (app dentro do admin)
 widget/widget.js    script da vitrine
 test/               testes e Nuvemshop simulada
 ```
